@@ -66,7 +66,6 @@ function collector()
 				break;
 			}
 		}
-		console.log(latestCamera);
 
 		var frameFiles = fs.readdirSync(framesFolder);
 		frameFiles.sort();
@@ -80,7 +79,6 @@ function collector()
 				break;
 			}
 		}
-		console.log(latestFrame);
 
 		var streamer = ffmpeg();
 		streamer.input(cameras[i].url);
