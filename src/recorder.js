@@ -11,7 +11,7 @@ module.exports = class Recorder
 	latestSegment = 0
 	latestFrame = 0;
 
-	constructor(mainFolder, cameraConfig) 
+	constructor(mainFolder, cameraConfig, recorderConfig) 
 	{
 		if(cameraConfig.id == null)
 			return false;
@@ -73,10 +73,9 @@ module.exports = class Recorder
 			'-c copy',
 			'-map 0',
 			'-f segment',
-			'-segment_time 30',
+			'-segment_time 300',
 			'-segment_atclocktime 1',
-			'-segment_start_number ' + this.latestSegment,
-			'-segment_format mp4'
+			'-segment_start_number ' + this.latestSegment
 		]);
 		this.ffmpeg.output(this.framesFolder + '/frame-%05d.jpg');
 		this.ffmpeg.outputOptions([
@@ -90,6 +89,10 @@ module.exports = class Recorder
 		this.ffmpeg.on('error', function(commandLine) {
 			console.log('Error Ffmpeg with command: ' + commandLine);
 		});
+		this.ffmpeg.on('end', function(commandLine) {
+			console.log('End Ffmpeg with command: ' + commandLine);
+		});
+		this.ffmpeg.renice(-10);
 		this.ffmpeg.run();
 	}
 }
