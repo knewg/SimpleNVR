@@ -17,7 +17,7 @@ module.exports = class Recorder
 			return false;
 		if(cameraConfig.url == null)
 			return false;
-		this.segmentsFolder = mainFolder + '/segments/' + cameraConfig.id;
+		this.segmentsFolder = mainFolder + '/segments/' + cameraConfig.id + '/x1';
 		this.framesFolder = mainFolder + '/frames/' + cameraConfig.id;
 		this.cameraConfig = cameraConfig;
 		if(!fs.existsSync(this.segmentsFolder)) 
@@ -73,26 +73,30 @@ module.exports = class Recorder
 			'-c copy',
 			'-map 0',
 			'-f segment',
-			'-segment_time 300',
-			'-segment_atclocktime 1',
+			'-segment_time 10',
+			'-segment_atclocktime 0',
 			'-segment_start_number ' + this.latestSegment
 		]);
 		this.ffmpeg.output(this.framesFolder + '/frame-%05d.jpg');
 		this.ffmpeg.outputOptions([
 			'-f image2', 
-			'-r 0.1',
+			'-r 1',
 			'-start_number ' + this.latestFrame
 		]);
 		this.ffmpeg.on('start', function(commandLine) {
 			console.log('Spawned Ffmpeg with command: ' + commandLine);
 		});
 		this.ffmpeg.on('error', function(commandLine) {
-			console.log('Error Ffmpeg with command: ' + commandLine);
+			//console.log('Error Ffmpeg with command: ' + commandLine);
 		});
 		this.ffmpeg.on('end', function(commandLine) {
 			console.log('End Ffmpeg with command: ' + commandLine);
 		});
 		this.ffmpeg.renice(-10);
 		this.ffmpeg.run();
+	}
+	stop()
+	{
+		this.ffmpeg.kill('SIGINT');
 	}
 }

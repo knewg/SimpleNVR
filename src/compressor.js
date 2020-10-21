@@ -1,13 +1,16 @@
 "use strict"
 const fs =  require('fs');
 var ffmpeg = require('fluent-ffmpeg');
-module.exports = class Compressor 
+var eventEmitter = require('events').EventEmitter;
+module.exports = class Compressor extends eventEmitter
 {
 	lock = false;
 	framesFolder
 	segmentsFolder
 	cameraConfig
 	config
+
+	finished = false
 
 	framesInFolder = 0;
 	waitForFrames = 250;
@@ -19,6 +22,7 @@ module.exports = class Compressor
 
 	constructor(mainFolder, cameraConfig, compressorConfig)
 	{
+		super();
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -37,17 +41,24 @@ module.exports = class Compressor
 	{
 		this.addListener();
 	}
+
 	addListener()
 	{
 		console.log("Adding listener for: " + this.framesFolder);
 		this._listener = fs.watch(this.framesFolder, '', (eventType, file) => this.validateListener(eventType));
 	}
+
+	removeListener()
+	{
+		this._listener.close();
+	}
+
 	validateListener(eventType)
 	{
 		if(this.lock || eventType != 'rename')
 			return;
 		this.framesInFolder++;
-		console.log("new frame for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
+		//console.log("new frame for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
 		if(this.framesInFolder >= this.waitForFrames)
 		{
 			console.log("new frame segment for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
@@ -57,7 +68,7 @@ module.exports = class Compressor
 	execute()
 	{
 		if(this.lock)
-			return;
+			return false;
 		this.lock = true;
 		if(!this.loadFrames())
 		{
@@ -67,6 +78,7 @@ module.exports = class Compressor
 		for(var i in this.config.compressions)
 		{
 			var compression = this.config.compressions[i];
+			this.emit("Executing", compression); 
 			if(compression != parseInt(compression, 10)) // make sure it's an integer
 			{
 				throw("Invalid config");
@@ -77,6 +89,22 @@ module.exports = class Compressor
 		}
 		this.dequeueNextProcess();
 	}
+
+	finish()
+	{
+		setTimeout(() => {
+			if(this.execute() === false)
+			{
+				this.finish();
+			}
+			else
+			{
+				this.finished = true;
+				this.removeListener();
+			}
+		}, 1000);
+	}
+
 	loadFrames()
 	{
 		var frameFiles = fs.readdirSync(this.framesFolder);
@@ -141,7 +169,13 @@ module.exports = class Compressor
 	{
 		this.deleteCompressedFrames();
 		this.framesInFolder = 0;
+		console.log("Compressor: finishedProcessing");
+		//TODO: Send finished event to Scheduler
 		this.lock = false;
+		this.emit("Finished");
+		if(this.finished === true)
+			this.emit("FinishedEverything");
+
 	}
 
 	dequeueNextProcess()

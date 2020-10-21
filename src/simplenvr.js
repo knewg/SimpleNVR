@@ -10,7 +10,7 @@ var config = {
 			30,
 			50,
 			100
-		]
+	]
 	},
 	"stapler": {},
 	"mainFolder": '/bulk/videotest/videos',
@@ -57,9 +57,6 @@ var config = {
 	]
 };
 const fs =  require('fs');
-var recorder = require('./recorder');
-var stapler = require('./stapler');
-var compressor = require('./compressor');
 //var camera = require('./camera');
 var scheduler = require('./scheduler');
 var cameras = {};
