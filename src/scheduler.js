@@ -4,6 +4,7 @@ var dayInstance = require('./day');
 var recorder = require('./recorder');
 var stapler = require('./stapler');
 var compressor = require('./compressor');
+var logger = require('./logger');
 module.exports = class Scheduler 
 {
 	date
@@ -12,8 +13,11 @@ module.exports = class Scheduler
 
 	config
 
-	constructor(mainFolder, cameraConfig, recorderConfig, staplerConfig, compressorConfig)
+	logger
+
+	constructor(mainFolder, logLevel, cameraConfig, recorderConfig, staplerConfig, compressorConfig)
 	{
+		this.logger = new logger("Scheduler", logLevel)
 		this.config = {};
 		this.config.mainFolder = mainFolder;
 		this.config.camera = cameraConfig;
@@ -33,17 +37,18 @@ module.exports = class Scheduler
 		tomorrow.setMilliseconds(0);
 		tomorrow.setDate(tomorrow.getDate() + 1);
 		var difference = tomorrow.getTime() - now.getTime();
-		var difference =  60
-		console.log("Waiting for " + difference + " seconds before starting a new day");
+		//var difference =  2000;
+		this.logger.notice("Waiting for " + difference + " seconds before starting a new day");
 		setTimeout(() => {
-			//this.createNewDay(tomorrow);
+			this.createNewDay(tomorrow);
 			this.finishDay();
-		}, difference * 1000);
+		}, difference);
 	}
 
 	finishDay()
 	{
 		var day = this.days.shift();
+		this.logger.notice("Finishing day");
 		day.recorder.stop();
 		day.compressor.on("FinishedEverything", () => {
 			day.stapler.runAll();
@@ -61,6 +66,7 @@ module.exports = class Scheduler
 		var dailyFolder = this.config.mainFolder + '/' + dateString;
 		if(!fs.existsSync(dailyFolder)) 
 		{
+			this.logger.notice("Creating folder " + dailyFolder);
 			fs.mkdirSync(dailyFolder, { recursive: true });	
 		}
 		var thisRecorder = new recorder(dailyFolder, this.config.camera, this.config.recorder);

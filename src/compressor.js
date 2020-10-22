@@ -1,6 +1,7 @@
 "use strict"
 const fs =  require('fs');
 var ffmpeg = require('fluent-ffmpeg');
+var logger = require('./logger');
 var eventEmitter = require('events').EventEmitter;
 module.exports = class Compressor extends eventEmitter
 {
@@ -9,6 +10,8 @@ module.exports = class Compressor extends eventEmitter
 	segmentsFolder
 	cameraConfig
 	config
+
+	logger
 
 	finished = false
 
@@ -23,6 +26,7 @@ module.exports = class Compressor extends eventEmitter
 	constructor(mainFolder, cameraConfig, compressorConfig)
 	{
 		super();
+		this.logger = new logger("Compressor", compressorConfig.logLevel)
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -44,7 +48,7 @@ module.exports = class Compressor extends eventEmitter
 
 	addListener()
 	{
-		console.log("Adding listener for: " + this.framesFolder);
+		this.logger.notice("Adding listener for: " + this.framesFolder);
 		this._listener = fs.watch(this.framesFolder, '', (eventType, file) => this.validateListener(eventType));
 	}
 
@@ -58,10 +62,10 @@ module.exports = class Compressor extends eventEmitter
 		if(this.lock || eventType != 'rename')
 			return;
 		this.framesInFolder++;
-		//console.log("new frame for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
+		this.logger.debug("new frame for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
 		if(this.framesInFolder >= this.waitForFrames)
 		{
-			console.log("new frame segment for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
+			this.logger.notice("new frame segment for camera: " + this.cameraConfig.id + " (" + this.framesInFolder + "/" + this.waitForFrames + ")");
 			this.execute();
 		}
 	}
@@ -119,7 +123,7 @@ module.exports = class Compressor extends eventEmitter
 				realFrames.push(frameFiles[i]);
 			}
 		}
-		console.log(realFrames);
+		this.logger.debug(realFrames);
 		var numFiles = realFrames.length;
 		if(numFiles == 0) //No new files 
 			return false;
@@ -134,7 +138,7 @@ module.exports = class Compressor extends eventEmitter
 		for(var i = 0; i < numFiles; i++)
 		{
 			fs.unlinkSync(this.framesFolder + '/' + this._currentFrames[i]);
-			console.log('Deleted file: ' + this._currentFrames[i]);
+			this.logger.debug('Deleted file: ' + this._currentFrames[i]);
 		}
 		this._currentFrames = null;
 
@@ -169,12 +173,15 @@ module.exports = class Compressor extends eventEmitter
 	{
 		this.deleteCompressedFrames();
 		this.framesInFolder = 0;
-		console.log("Compressor: finishedProcessing");
+		this.logger.debug("Finished processing frames");
 		//TODO: Send finished event to Scheduler
 		this.lock = false;
 		this.emit("Finished");
 		if(this.finished === true)
+		{
+			this.logger.notice("Finished last compressor job");
 			this.emit("FinishedEverything");
+		}
 
 	}
 
@@ -221,17 +228,17 @@ module.exports = class Compressor extends eventEmitter
 		process.outputOptions(['-framerate 24', '-safe 0']);
 		//process.outputOptions(['-c copy', '-safe 0']);
 		process.on('start', (commandLine) => {
-			console.log('Spawned Ffmpeg for x' + scale + ' from camera: ' + this.cameraConfig.id + ' with command: ' + commandLine);
+			this.logger.verbose('Spawned Ffmpeg for x' + scale + ' from camera: ' + this.cameraConfig.id + ' with command: ' + commandLine);
 		});
 		process.on('error', (commandLine) => {
-			console.log('Error Ffmpeg with command: ' + commandLine);
+			this.logger.warn('Error Ffmpeg with command: ' + commandLine);
 			this.dequeueNextProcess();
 		});
 		process.on('end', () => { 
 			fs.rmdirSync(framesFolder, { 'recursive': true });
 			fs.renameSync(outputTmpName, outputRealName);
 			this.dequeueNextProcess();
-			console.log('Ending compress x' + scale + ' process for: ' + this.cameraConfig.id);
+			this.logger.notice('Ending compress x' + scale + ' process for: ' + this.cameraConfig.id);
 		});
 		process.renice(10);
 		return process;

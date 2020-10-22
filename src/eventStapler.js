@@ -12,6 +12,8 @@ module.exports = class Stapler
 	outputFilename = 'video.1x.mp4';
 	_listener = null
 
+	logger
+
 	_currentSegmentFiles
 
 	constructor(mainFolder, cameraConfig, staplerConfig)

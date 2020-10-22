@@ -1,6 +1,7 @@
 "use strict"
 const fs =  require('fs');
 var ffmpeg = require('fluent-ffmpeg');
+var logger = require('./logger');
 module.exports = class Recorder 
 {
 
@@ -13,6 +14,7 @@ module.exports = class Recorder
 
 	constructor(mainFolder, cameraConfig, recorderConfig) 
 	{
+		this.logger = new logger("Recorder " + cameraConfig.id, recorderConfig.logLevel);
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -73,7 +75,7 @@ module.exports = class Recorder
 			'-c copy',
 			'-map 0',
 			'-f segment',
-			'-segment_time 10',
+			'-segment_time 300',
 			'-segment_atclocktime 0',
 			'-segment_start_number ' + this.latestSegment
 		]);
@@ -83,14 +85,14 @@ module.exports = class Recorder
 			'-r 1',
 			'-start_number ' + this.latestFrame
 		]);
-		this.ffmpeg.on('start', function(commandLine) {
-			console.log('Spawned Ffmpeg with command: ' + commandLine);
+		this.ffmpeg.on('start', (commandLine) => {
+			this.logger.verbose('Spawned Ffmpeg with command: ' + commandLine);
 		});
-		this.ffmpeg.on('error', function(commandLine) {
-			//console.log('Error Ffmpeg with command: ' + commandLine);
+		this.ffmpeg.on('error', (commandLine) => {
+			this.logger.notice('Error Ffmpeg with command: ' + commandLine);
 		});
-		this.ffmpeg.on('end', function(commandLine) {
-			console.log('End Ffmpeg with command: ' + commandLine);
+		this.ffmpeg.on('end', (commandLine) => {
+			this.logger.notice('End Ffmpeg with command: ' + commandLine);
 		});
 		this.ffmpeg.renice(-10);
 		this.ffmpeg.run();

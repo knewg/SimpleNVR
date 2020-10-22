@@ -1,6 +1,7 @@
 "use strict"
 const fs =  require('fs');
 var ffmpeg = require('fluent-ffmpeg');
+var logger = require('./logger');
 module.exports = class Stapler 
 {
 	lock = false;
@@ -13,6 +14,7 @@ module.exports = class Stapler
 
 	constructor(mainFolder, cameraConfig, staplerConfig)
 	{
+		this.logger = new logger("Stapler", staplerConfig.logLevel)
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -45,7 +47,7 @@ module.exports = class Stapler
 			}
 			else
 			{
-				console.log("Stapler: No segments for type " + types[i].name);
+				this.logger.warn("Stapler: No segments for type " + types[i].name);
 			}
 		}
 		this.dequeueNextProcess();
@@ -66,7 +68,7 @@ module.exports = class Stapler
 	finishedProcessing()
 	{
 		//Report event
-		console.log("Finished stapling for " + this.cameraConfig.id)
+		this.logger.notice("Finished stapling for " + this.cameraConfig.id)
 	}
 
 	generatePlaylist(segmentsFolder, playlistFile)
@@ -114,15 +116,15 @@ module.exports = class Stapler
 		process.inputOptions(['-f concat', '-safe 0']);
 		process.outputOptions(['-c copy', '-safe 0']);
 		process.on('start', (commandLine) => {
-			console.log('Spawned Ffmpeg for: ' + this.cameraConfig.id + ' with command: ' + commandLine);
+			this.logger.verbose('Spawned Ffmpeg for: ' + this.cameraConfig.id + ' with command: ' + commandLine);
 		});
 		process.on('error', (commandLine) => {
-			console.log('Error Ffmpeg for: ' + this.cameraConfig.id + ' with command: ' + commandLine);
+			this.logger.warn('Error Ffmpeg for: ' + this.cameraConfig.id + ' with command: ' + commandLine);
 		});
 		process.on('end', () => { 
 			this.deleteSegmentFolder(segmentsFolder);
 			this.dequeueNextProcess();
-			console.log('Ending Staple process for: ' + this.cameraConfig.id);
+			this.logger.verbose('Ending Staple process for: ' + this.cameraConfig.id);
 		});
 		process.renice(10);
 		return process;

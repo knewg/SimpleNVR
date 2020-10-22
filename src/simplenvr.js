@@ -1,8 +1,12 @@
 "use strict";
 var config = {
-	"recorder": {},
+	"recorder": 
+	{
+		"logLevel": "verbose",
+	},
 	"compressor": 
 	{
+		"logLevel": "verbose",
 		"secondsPerFrame": 10, //How many frames are rendered in the recorder per second of video
 		"compressions": [
 			10,
@@ -12,7 +16,11 @@ var config = {
 			100
 	]
 	},
-	"stapler": {},
+	"stapler": {
+
+		"logLevel": "verbose",
+	},
+	"logLevel": "verbose",
 	"mainFolder": '/bulk/videotest/videos',
 	"cameras": [
 		{
@@ -66,7 +74,7 @@ for (var i in config.cameras)
 	cameras[id] = {}
 	//cameras[id] = new recorder(dailyFolder, cameraConfig[i]);
 //	cameras[id] = new camera(id, config.cameras[i]);
-	cameras[id].scheduler = new scheduler(config.mainFolder, config.cameras[i], config.recorder, config.stapler, config.compressor);
+	cameras[id].scheduler = new scheduler(config.mainFolder, config.logLevel, config.cameras[i], config.recorder, config.stapler, config.compressor);
 }
 
 //ffmpeg -rtsp_transport tcp -i rtsp://192.168.42.21:554/s0 -c copy -map 0 -f segment -segment_time 30 -segment_atclocktime 1 -segment_start_number -segment_format mp4 "/bulk/videotest/capture-%03d.mp4"
