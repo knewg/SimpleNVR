@@ -23,10 +23,10 @@ module.exports = class Compressor extends eventEmitter
 
 	_currentFrames
 
-	constructor(mainFolder, cameraConfig, compressorConfig)
+	constructor(id, mainFolder, cameraConfig, compressorConfig)
 	{
 		super();
-		this.logger = new logger("Compressor", compressorConfig.logLevel)
+		this.logger = new logger("Compressor", id, cameraConfig.id, compressorConfig.logLevel)
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -38,6 +38,7 @@ module.exports = class Compressor extends eventEmitter
 		this.compressorProcesses = [];
 		if(!fs.existsSync(this.segmentsFolder)) 
 		{
+			this.logger.verbose("Creating folder: " + this.segmentsFolder);
 			fs.mkdirSync(this.segmentsFolder, { recursive: true });	
 		}
 	}
@@ -54,6 +55,7 @@ module.exports = class Compressor extends eventEmitter
 
 	removeListener()
 	{
+		this.logger.verbose("Removing listener for " + this.cameraConfig.id);
 		this._listener.close();
 	}
 
@@ -85,7 +87,7 @@ module.exports = class Compressor extends eventEmitter
 			this.emit("Executing", compression); 
 			if(compression != parseInt(compression, 10)) // make sure it's an integer
 			{
-				throw("Invalid config");
+				this.logger.error("Invalid config");
 				return false;
 			}
 			var folder = this.createSymlinks(compression);
@@ -97,16 +99,19 @@ module.exports = class Compressor extends eventEmitter
 	finish()
 	{
 		setTimeout(() => {
-			if(this.execute() === false)
+			if(this.lock === true) //Run again if locked
 			{
+				this.logger.debug("Execute process is already running, waiting 10 seconds.");
 				this.finish();
 			}
 			else
 			{
+				this.logger.verbose("Running one last compress, and removing listener");
 				this.finished = true;
 				this.removeListener();
+				this.execute();
 			}
-		}, 1000);
+		}, 10000);
 	}
 
 	loadFrames()
@@ -173,7 +178,7 @@ module.exports = class Compressor extends eventEmitter
 	{
 		this.deleteCompressedFrames();
 		this.framesInFolder = 0;
-		this.logger.debug("Finished processing frames");
+		this.logger.verbose("Finished processing frames");
 		//TODO: Send finished event to Scheduler
 		this.lock = false;
 		this.emit("Finished");

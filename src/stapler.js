@@ -2,7 +2,8 @@
 const fs =  require('fs');
 var ffmpeg = require('fluent-ffmpeg');
 var logger = require('./logger');
-module.exports = class Stapler 
+var eventEmitter = require('events').EventEmitter;
+module.exports = class Stapler extends eventEmitter
 {
 	lock = false;
 	segmentsFolder
@@ -12,9 +13,12 @@ module.exports = class Stapler
 
 	processQueue
 
-	constructor(mainFolder, cameraConfig, staplerConfig)
+	logger
+
+	constructor(id, mainFolder, cameraConfig, staplerConfig)
 	{
-		this.logger = new logger("Stapler", staplerConfig.logLevel)
+		super();
+		this.logger = new logger("Stapler", id, cameraConfig.id, staplerConfig.logLevel)
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -31,9 +35,11 @@ module.exports = class Stapler
 
 	runAll()
 	{
+		this.logger.notice("Running stapler for folder: " + this.segmentsFolder);
 		var types = fs.readdirSync(this.segmentsFolder, { 'withFileTypes': true });
 		for(var i in types)
 		{
+			this.logger.debug("Found type " + types[i]);
 			if(!types[i].isDirectory()) //Only look for directories (x1, x10 etc);
 			{
 				continue;	
@@ -43,6 +49,7 @@ module.exports = class Stapler
 			var outputFile = this.cameraFolder + '/video.' + types[i].name + '.mp4';
 			if(this.generatePlaylist(folder, playlistFile) !== false)
 			{
+				this.logger.verbose("Adding process for folder: " + folder + " and outputFile: " + outputFile);
 				this.processQueue.push(this.createNewProcess(playlistFile, outputFile, folder));
 			}
 			else
@@ -69,6 +76,7 @@ module.exports = class Stapler
 	{
 		//Report event
 		this.logger.notice("Finished stapling for " + this.cameraConfig.id)
+		this.emit("FinishedEverything");
 	}
 
 	generatePlaylist(segmentsFolder, playlistFile)

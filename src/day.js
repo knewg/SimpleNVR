@@ -7,7 +7,7 @@ module.exports = class Day
 	stapler
 	compressor
 
-	constructor(date, recorder, stapler, compressor)
+	constructor(id, date, recorder, stapler, compressor)
 	{
 		this.date = date;
 		this.recorder = recorder;

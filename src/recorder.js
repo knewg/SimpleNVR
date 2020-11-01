@@ -9,12 +9,14 @@ module.exports = class Recorder
 	framesFolder
 	cameraConfig
 
+	config
+
 	latestSegment = 0
 	latestFrame = 0;
 
-	constructor(mainFolder, cameraConfig, recorderConfig) 
+	constructor(id, mainFolder, cameraConfig, recorderConfig) 
 	{
-		this.logger = new logger("Recorder " + cameraConfig.id, recorderConfig.logLevel);
+		this.logger = new logger("Recorder", id, cameraConfig.id, recorderConfig.logLevel);
 		if(cameraConfig.id == null)
 			return false;
 		if(cameraConfig.url == null)
@@ -22,6 +24,7 @@ module.exports = class Recorder
 		this.segmentsFolder = mainFolder + '/segments/' + cameraConfig.id + '/x1';
 		this.framesFolder = mainFolder + '/frames/' + cameraConfig.id;
 		this.cameraConfig = cameraConfig;
+		this.config = recorderConfig;
 		if(!fs.existsSync(this.segmentsFolder)) 
 		{
 			fs.mkdirSync(this.segmentsFolder, { recursive: true });	
@@ -75,14 +78,14 @@ module.exports = class Recorder
 			'-c copy',
 			'-map 0',
 			'-f segment',
-			'-segment_time 300',
+			'-segment_time ' + this.config.segmentLength,
 			'-segment_atclocktime 0',
 			'-segment_start_number ' + this.latestSegment
 		]);
 		this.ffmpeg.output(this.framesFolder + '/frame-%05d.jpg');
 		this.ffmpeg.outputOptions([
 			'-f image2', 
-			'-r 1',
+			'-r 0.5',
 			'-start_number ' + this.latestFrame
 		]);
 		this.ffmpeg.on('start', (commandLine) => {
