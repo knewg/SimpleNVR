@@ -4,6 +4,9 @@ A simple NVR software that takes input from IP cameras (RTSP) and stores it to d
 ## Installation
 You'll need NodeJS and FFMPEG. I'll write some better installation instructions and a docker file later.
 
+## Configuration
+See https://github.com/knewg/SimpleNVR/wiki/config.json
+
 ## Usage
 1. Edit config file
 
