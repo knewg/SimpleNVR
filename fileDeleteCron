@@ -1,0 +1,2 @@
+#Install to /etc/cron.d/simplenvr
+02 02 * * *	root	find /bulk/videotest/videos/ -name video.x1.mp4 -mtime +7 -delete
